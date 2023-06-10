@@ -1,14 +1,17 @@
 gym = \
 ''' 
- ________________
-|                |
-|      Gym       |
-|                |
-|                |
-|______|  |______|'''
+ ____________________
+|####################|
+|####################|
+|        GYM         |
+| ###           ###  |
+| ###           ###  | 
+| ###           ###  |
+|________|  |________|'''
 
 house_2 = """
- ____________
+ 
+ _________/\_
 |            |
 |   House2   |
 |            |
@@ -21,16 +24,17 @@ house_1 = """
 |          |
 |___|  |___|"""
 pc = """
- ____________
-|            |  
-   Pokemon   
-|   Center   |
-
-|___ |  |____|"""
+ ______________
+|##############|  
+|##### PC #####| 
+|##############|
+|              |
+|_____|  |_____|"""
 pm = """
   __________
- |          |
+ |##########|
  | Pokemart |
+ |##########|
  |          |
  |___|  |___|"""
     
@@ -42,15 +46,50 @@ tree = '''
 '''
 
 pond = """
-~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~
-~~~~~~pond~~~~~~
-~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~
-"""
+####################
+##~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~##
+##~~~~~~pond~~~~~~##
+##~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~##
+####################"""
 
+battle_zone = """
+            *************
+        *******         *******
+     *****                   *****
+   ****                         ****
+  ***           ______            ***
+ ***           /      \            ***
+ ***----------| Battle |------------***
+ ***          \  Zone  /            ***
+ ***           \------/             ***
+ ****                             ****
+   ****                         ****
+     *****                   *****
+        *******         *******
+            *************"""
+
+
+logo = """
+                                  ,'\
+    _.----.        ____         ,'  _\   ___    ___     ____
+_,-'       `.     |    |  /`.   \,-'    |   \  /   |   |    \  |`.
+\      __    \    '-.  | /   `.  ___    |    \/    |   '-.   \ |  |
+ \.    \ \   |  __  |  |/    ,','_  `.  |          | __  |    \|  |
+   \    \/   /,' _`.|      ,' / / / /   |          ,' _`.|     |  |
+    \     ,-'/  /   \    ,'   | \/ / ,`.|         /  /   \  |     |
+     \    \ |   \_/  |   `-.  \    `'  /|  |    ||   \_/  | |\    |
+      \    \ \      /       `-.`.___,-' |  |\  /| \      /  | |   |
+       \    \ `.__,'|  |`-._    `|      |__| \/ |  `.__,'|  | |   |
+        \_.-'       |__|    `-._ |              '-.|     '-.| |   |
+                                `'                            '-._|"""
+
+cave = """
+|     __    |
+\____/  \___/"""
 import random
 
 # Define ASCII Art of buildings
@@ -164,7 +203,74 @@ def place_pond(grid, occupied):
                     occupied[start_row + i][start_col + j] = True
 
         return start_row, start_col, pond_width, pond_height
+    
+def place_zone(grid, occupied):
+    # Calculate the size of the pond
+    zone_height = len(battle_zone.split('\n'))
+    zone_width = max(len(line) for line in battle_zone.split('\n'))
 
+    while True:
+        # Randomly pick a place for the pond
+        start_row = random.randint(0, grid_height - zone_height - 1)
+        start_col = random.randint(0, grid_width - zone_width - 1)
+
+        # Check if space is occupied (including a 1-cell border around the pond)
+        if any(
+            occupied[start_row + i][start_col + j] or
+            (start_row + i == 0 or start_row + i == grid_height - 1) or
+            (start_col + j == 0 or start_col + j == grid_width - 1)
+            for i in range(-1, zone_height + 1) for j in range(-1, zone_width + 1)
+        ):
+            continue
+
+        # Place the pond on the grid
+        zone_lines = battle_zone.split('\n')
+        for i in range(zone_height):
+            for j in range(len(zone_lines[i])):
+                if zone_lines[i][j] != ' ':
+                    grid[start_row + i][start_col + j] = zone_lines[i][j]
+                    occupied[start_row + i][start_col + j] = True
+
+        return start_row, start_col, zone_width, zone_height
+
+
+def place_cave(grid, occupied):
+    # Calculate the size of the cave
+    cave_lines = cave.split('\n')
+    cave_height = len(cave_lines)
+    cave_width = max(len(line) for line in cave_lines)
+
+    # Get all possible start_cols that can accommodate the cave
+    possible_start_cols = [i for i in range(0, grid_width - cave_width - 1) if not any(occupied[0][i + j] for j in range(cave_width))]
+
+    # If there are no possible start_cols, return None
+    if not possible_start_cols:
+        return None
+
+    # Randomly pick a start_col from possible_start_cols
+    start_col = random.choice(possible_start_cols)
+    start_row = 0
+
+    # Place the cave on the grid
+    for i in range(cave_height):
+        for j in range(len(cave_lines[i])):
+            if cave_lines[i][j] != ' ':
+                grid[start_row + i][start_col + j] = cave_lines[i][j]
+                occupied[start_row + i][start_col + j] = True
+
+    return start_row, start_col, cave_width, cave_height
+    
+# Place cave (20% chance of appearing)
+#if random.random() < 0.99:
+#    place_cave(grid, occupied)
+    
+# Place battle zone (25% chance of occuring)
+if (random.random() * (grid_width/120)) > 0.75:
+    place_zone(grid, occupied)   
+    
+# Place pond (40% chance of appearing)
+if random.random() < 0.4:
+    place_pond(grid, occupied)
 
 # Place buildings
 gy_row, gy_col, gy_wid, gy_hei = place_building("Gym", grid, occupied)
@@ -172,15 +278,13 @@ place_building("Pokemart", grid, occupied)
 place_building("Pokemon Center", grid, occupied)
 for _ in range((grid_height * grid_width) // 950):
     place_building(random.choice(["House 1", "House 2"]), grid, occupied)
+
+
 # Place trees
-num_trees = random.randint(1, 8)
+num_trees = random.randint(1, 15)
 for _ in range(num_trees):
     place_tree(grid, occupied)
-
-# Place pond (20% chance of appearing)
-if random.random() < 0.5:
-    place_pond(grid, occupied)
-
+    
 # Draw border
 for i in range(grid_width):
     grid[0][i] = '-'
@@ -215,7 +319,7 @@ for row, col in exit_positions:
         start, end = sorted([row, gy_row + gy_hei // 2])
         for i in range(start, end + 1):
             if grid[i][col] == ' ':
-                grid[i][col] = '|'
+                grid[i][col] = '|'               
 
 # Print grid
 for row in grid:
